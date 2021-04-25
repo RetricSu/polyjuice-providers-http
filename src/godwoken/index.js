@@ -104,13 +104,15 @@ class GodwokenUtils {
     this.rollup_type_hash = rollup_type_hash;
   }
 
-  generateTransactionMessageToSign(raw_l2tx) {
+  generateTransactionMessageToSign(raw_l2tx, sender_script_hash, receiver_script_hash) {
     const raw_tx_data = core.SerializeRawL2Transaction(
       NormalizeRawL2Transaction(raw_l2tx)
     );
     const rollup_type_hash = Buffer.from(this.rollup_type_hash.slice(2), "hex");
+    const senderScriptHash = Buffer.from(sender_script_hash.slice(2), "hex");
+    const receiverScriptHash = Buffer.from(receiver_script_hash.slice(2), "hex");
     const data = toArrayBuffer(
-      Buffer.concat([rollup_type_hash, toBuffer(raw_tx_data)])
+      Buffer.concat([rollup_type_hash, senderScriptHash, receiverScriptHash, toBuffer(raw_tx_data)])
     );
     const message = utils.ckbHash(data).serializeJson();
     const prefix_buf = Buffer.from(`\x19Ethereum Signed Message:\n32`);

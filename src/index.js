@@ -29,8 +29,16 @@ class PolyjuiceHttpProvider extends HttpProvider {
                         data: data || '',
                         gas: gas 
                     }
+                    
+                    const sender_script_hash = this.godwoker.getLockScriptHash(from);
+                    const receiver_script_hash = this.godwoker.getLockScriptHash("0x" + "0".repeat(64));
+
                     const polyjuice_tx = await this.godwoker.assembleRawL2Transaction(t);
-                    const message = this.godwoker.generateTransactionMessageToSign(polyjuice_tx);
+                    const message = this.godwoker.generateTransactionMessageToSign(
+                        polyjuice_tx,
+                        sender_script_hash,
+                        receiver_script_hash
+                    );
                     const signature = await window.ethereum.request({
                         method: 'personal_sign',
                         params: [message, window.ethereum.selectedAddress],
@@ -59,8 +67,16 @@ class PolyjuiceHttpProvider extends HttpProvider {
                         data: data || '',
                         gas: gas 
                     }
+
+                    const sender_script_hash = this.godwoker.getLockScriptHash(from);
+                    const receiver_script_hash = this.godwoker.getLockScriptHash("0x" + "0".repeat(64));
+
                     const polyjuice_tx = await this.godwoker.assembleRawL2Transaction(t);
-                    const message = this.godwoker.generateTransactionMessageToSign(polyjuice_tx);
+                    const message = this.godwoker.generateTransactionMessageToSign(
+                        polyjuice_tx,
+                        sender_script_hash,
+                        receiver_script_hash,
+                    );
                     const signature = await window.ethereum.request({
                         method: 'personal_sign',
                         params: [message, window.ethereum.selectedAddress],

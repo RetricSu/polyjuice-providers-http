@@ -29,6 +29,10 @@ export type GodwokerOption = {
   godwoken: {
     rollup_type_hash: Hash
     layer2_lock: Omit<Script, 'args'>
+    eth_account_lock: {
+        code_hash: Hash
+        hash_type: "data" | "type"
+    }
   }
   request_option?: object
 }
@@ -37,6 +41,7 @@ export class Godwoker {
     private layer2_lock: Omit<Script, 'args'>;
     private client: any;
     private godwkenUtils: GodwokenUtils;
+    private godwokerOption: GodwokerOption
 
     constructor (host: string, option: GodwokerOption) {
         const callServer = function(request: any, callback: any) {
@@ -55,6 +60,16 @@ export class Godwoker {
         this.client = jaysonBrowserClient(callServer);
         this.godwkenUtils = new GodwokenUtils(option.godwoken.rollup_type_hash);
         this.layer2_lock = option.godwoken.layer2_lock
+        this.godwokerOption = option
+    }
+
+    getLockScriptHash(args: HexString): Hash {
+        const script: Script = {
+            code_hash: this.godwokerOption.godwoken.eth_account_lock.code_hash,
+            hash_type: this.godwokerOption.godwoken.eth_account_lock.hash_type,
+            args: this.godwokerOption.godwoken.rollup_type_hash + args.slice(2),
+        }
+        return utils.computeScriptHash(script);
     }
 
     async getAccountId (eth_address: string): Promise<string> {
@@ -102,8 +117,8 @@ export class Godwoker {
         return tx;
     }
 
-    generateTransactionMessageToSign (tx: RawL2Transaction) {
-      return this.godwkenUtils.generateTransactionMessageToSign(tx);
+    generateTransactionMessageToSign(tx: RawL2Transaction, sender_script_hash: Hash, receiver_script_hash: Hash) {
+      return this.godwkenUtils.generateTransactionMessageToSign(tx, sender_script_hash, receiver_script_hash);
     }
 
     serializeL2Transaction (tx: L2Transaction) {
@@ -166,6 +181,7 @@ export class Godwoker {
       return '0x' + Buffer.from(data).toString('hex');
     }
 
+    // TODO: seems not correct
     ethAddrToAccountId (_address: HexString): HexNumber {
       const address = Buffer.from(_address.slice(2), "hex");
       if( address.byteLength !== 20 )
