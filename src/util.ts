@@ -347,12 +347,13 @@ export class Godwoker {
   }
 
   async assembleRawL2Transaction(
-    eth_tx: EthTransaction
+    eth_tx: EthTransaction,
+    verboseLogs = false
   ): Promise<RawL2Transaction> {
     const from = await this.getAccountIdByEoaEthAddress(eth_tx.from);
     const to = await this.allTypeEthAddressToAccountId(eth_tx.to);
     const nonce = await this.getNonce(parseInt(from));
-    const encodedArgs = this.encodeArgs(eth_tx);
+    const encodedArgs = this.encodeArgs(eth_tx, verboseLogs);
     const tx: RawL2Transaction = {
       from_id: "0x" + BigInt(from).toString(16),
       to_id: "0x" + BigInt(to).toString(16),
@@ -509,13 +510,16 @@ export class Godwoker {
     });
   }
 
-  async waitForTransactionReceipt(tx_hash: Hash) {
+  async waitForTransactionReceipt(tx_hash: Hash, verboseLogs = false) {
     while (true) {
       await this.asyncSleep(3000);
       const tx_receipt = await this.eth_getTransactionReceipt(tx_hash);
-      console.log(
-        `keep waitting for tx_receipt: ${JSON.stringify(tx_receipt)}`
-      );
+
+      if (verboseLogs) {
+        console.log(
+          `keep waiting for tx_receipt: ${JSON.stringify(tx_receipt)}`
+        );
+      }
 
       if (tx_receipt) {
         break;
@@ -557,10 +561,12 @@ export class Godwoker {
     }
   }
 
-  encodeArgs(_tx: EthTransaction) {
+  encodeArgs(_tx: EthTransaction, verboseLogs = false) {
     const { to, gasPrice, gas: gasLimit, value, data } = _tx;
 
-    console.log(_tx);
+    if (verboseLogs) {
+      console.log(_tx);
+    }
     // header
     const args_0_7 =
       "0x" +

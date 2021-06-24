@@ -33,15 +33,19 @@ export interface HttpProviderOptions {
 }
 
 export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider {
+  verboseLogs: boolean;
+
   constructor(
     host: string,
     godwoken_config: GodwokerOption,
     abi_items: AbiItem[] = [],
     private_key: string,
+    verboseLogs = false,
     options?: HttpProviderOptions
   ) {
     super(host, godwoken_config, abi_items);
     this.signer = new Signer(private_key);
+    this.verboseLogs = verboseLogs;
   }
 
   async send(
@@ -52,6 +56,10 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
     ) => void
   ) {
     const { method, params } = payload;
+
+    if (this.verboseLogs) {
+      console.log(`[polyjuice-provider-node]: Method="${method}"`);
+    }
 
     switch (method) {
       case "eth_sendTransaction":
@@ -66,7 +74,9 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
               )
             );
 
-          console.log(data, data_with_short_address);
+          if (this.verboseLogs) {
+            console.log(data, data_with_short_address);
+          }
 
           const t = {
             from: from,
@@ -83,12 +93,14 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
           const receiver_script_hash =
             await this.godwoker.getScriptHashByAccountId(parseInt(to_id));
 
-          const polyjuice_tx = await this.godwoker.assembleRawL2Transaction(t);
+          const polyjuice_tx = await this.godwoker.assembleRawL2Transaction(t, this.verboseLogs);
 
           // ready to sign tx
-          console.log(
-            `it is very dangerous to sign with private-key, please use it carefully and only use in test development scence!`
-          );
+          if (this.verboseLogs) {
+            console.log(
+              `it is very dangerous to sign with private-key, please use it carefully and only use in test development scence!`
+            );
+          }
           const message = this.godwoker.generateTransactionMessageToSign(
             polyjuice_tx,
             sender_script_hash,
@@ -103,24 +115,33 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
             polyjuice_tx,
             signature
           );
-          console.log(
-            `provider just proxy an eth_sendTransaction rpc call, tx_hash: ${tx_hash}`
-          );
-          await this.godwoker.waitForTransactionReceipt(tx_hash);
-          this._send(payload, function (err, result) {
-            console.log(err, result);
+          if (this.verboseLogs) {
+            console.log(
+              `provider just proxy an eth_sendTransaction rpc call, tx_hash: ${tx_hash}`
+            );
+          }
+          await this.godwoker.waitForTransactionReceipt(tx_hash, this.verboseLogs);
+          this._send(payload, (err, result) => {
+            // console.log('result of sending payload etc', {
+            //   payload
+            // })
+            if (this.verboseLogs) {
+              console.log(err, result);
+            }
             const res = {
               jsonrpc: result.jsonrpc,
               id: result.id,
             };
             const new_res = { ...res, ...{ result: tx_hash } };
-            console.log(
-              `eth_sendTransaction, new_res: ${JSON.stringify(
-                new_res,
-                null,
-                2
-              )}`
-            );
+            if (this.verboseLogs) {
+              console.log(
+                `eth_sendTransaction, new_res: ${JSON.stringify(
+                  new_res,
+                  null,
+                  2
+                )}`
+              );
+            }
             callback(null, new_res);
           });
           break;
@@ -129,79 +150,86 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
           throw error;
         }
 
-        case "eth_call":
-          try {
-            console.log('cli-provider eth_call');
-            const { from, gas, gasPrice, value, data, to } = params[0];
-  
-            const data_with_short_address =
-              await this.abi.refactor_data_with_short_address(
-                data,
-                this.godwoker.getShortAddressByAllTypeEthAddress.bind(
-                  this.godwoker
-                )
-              );
-  
-            const t = {
-              from: from || "0x" + "0".repeat(40),
-              to: to,
-              value: value || 0,
-              data: data_with_short_address || "",
-              gas: gas || 5000000,
-              gasPrice: gasPrice || 0,
-            };
-  
-            const polyjuice_tx = await this.godwoker.assembleRawL2Transaction(t);
-  
-            const run_result = await this.godwoker.gw_executeRawL2Transaction(
-              polyjuice_tx
+      case "eth_call":
+        try {
+          const { from, gas, gasPrice, value, data, to } = params[0];
+
+          const data_with_short_address =
+            await this.abi.refactor_data_with_short_address(
+              data,
+              this.godwoker.getShortAddressByAllTypeEthAddress.bind(
+                this.godwoker
+              )
             );
-  
+
+          const t = {
+            from: from || "0x" + "0".repeat(40),
+            to: to,
+            value: value || 0,
+            data: data_with_short_address || "",
+            gas: gas || 5000000,
+            gasPrice: gasPrice || 0,
+          };
+
+          const polyjuice_tx = await this.godwoker.assembleRawL2Transaction(t, this.verboseLogs);
+
+          const run_result = await this.godwoker.gw_executeRawL2Transaction(
+            polyjuice_tx
+          );
+
+          if (this.verboseLogs) {
             console.log(`provider just proxy an eth_call rpc call.`);
-  
+
             console.log(`runResult: ${JSON.stringify(run_result, null, 2)}`);
-            const abi_item =
-              this.abi.get_intereted_abi_item_by_encoded_data(data);
-            if (!abi_item) {
-              this._send(payload, function (err, result) {
+          }
+          const abi_item =
+            this.abi.get_intereted_abi_item_by_encoded_data(data);
+          if (!abi_item) {
+            this._send(payload, (err, result) => {
+              if (this.verboseLogs) {
                 console.log(err, result);
-                const res = {
-                  jsonrpc: result.jsonrpc,
-                  id: result.id,
-                };
-                const new_res = { ...res, ...{ result: run_result.return_data } };
+              }
+              const res = {
+                jsonrpc: result.jsonrpc,
+                id: result.id,
+              };
+              const new_res = { ...res, ...{ result: run_result.return_data } };
+              if (this.verboseLogs) {
                 console.log(
                   `no abi, new_res: ${JSON.stringify(new_res, null, 2)}`
                 );
-                callback(null, new_res);
-              });
-            } else {
-              const return_value_with_short_address =
-                await this.abi.refactor_return_value_with_short_address(
-                  run_result.return_data,
-                  abi_item,
-                  this.godwoker.getEthAddressByAllTypeShortAddress.bind(
-                    this.godwoker
-                  )
-                );
-              this._send(payload, function (err, result) {
+              }
+              callback(null, new_res);
+            });
+          } else {
+            const return_value_with_short_address =
+              await this.abi.refactor_return_value_with_short_address(
+                run_result.return_data,
+                abi_item,
+                this.godwoker.getEthAddressByAllTypeShortAddress.bind(
+                  this.godwoker
+                )
+              );
+            this._send(payload, function (err, result) {
+              if (this.verboseLogs) {
                 console.log(err, result);
-                const res = {
-                  jsonrpc: result.jsonrpc,
-                  id: result.id,
-                };
-                const new_res = {
-                  ...res,
-                  ...{ result: return_value_with_short_address },
-                };
-                callback(null, new_res);
-              });
-            }
-            break;
-          } catch (error) {
-            this.connected = false;
-            throw error;
+              }
+              const res = {
+                jsonrpc: result.jsonrpc,
+                id: result.id,
+              };
+              const new_res = {
+                ...res,
+                ...{ result: return_value_with_short_address },
+              };
+              callback(null, new_res);
+            });
           }
+          break;
+        } catch (error) {
+          this.connected = false;
+          throw error;
+        }
 
       default:
         try {
