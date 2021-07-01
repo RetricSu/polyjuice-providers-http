@@ -69,6 +69,21 @@ export class PolyjuiceJsonRpcProvider extends providers.JsonRpcProvider {
 
   async send(method: string, params: Array<any>): Promise<any> {
     switch (method) {
+      case "eth_getBlockByNumber": 
+        const blockNumber: BigNumber | 'latest' = params[0];
+
+        let blockNumberHex: string = '0x0';
+        if (params[0] === 'latest') {
+          blockNumberHex = await super.send("eth_blockNumber", []);
+        } else {
+          blockNumberHex = blockNumber.toString();
+        }
+
+        const resultRaw = await super.send(method, [blockNumberHex, ...params.slice(1)]);
+        const resultFixed = {...resultRaw, gasLimit: '0x0', gasPrice: '0x0', gasUsed: '0x0', difficulty: '0x0'};
+
+        return resultFixed;
+      
       case "eth_call":
         try {
           const { data } = params[0];
