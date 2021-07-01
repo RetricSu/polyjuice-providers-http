@@ -292,36 +292,40 @@ export default class PolyjuiceHttpProvider {
    * @param {Function} callback triggered on end with (err, result)
    */
   _send(payload, callback) {
-    var _this = this;
-    var request = this._prepareRequest();
-
-    request.onreadystatechange = function () {
-      if (request.readyState === 4 && request.timeout !== 1) {
-        var result = request.responseText;
-        var error = null;
-
-        try {
-          result = JSON.parse(result);
-        } catch (e) {
-          error = errors.InvalidResponse(request.responseText);
+    return new Promise(resolve => {
+      var _this = this;
+      var request = this._prepareRequest();
+  
+      request.onreadystatechange = function () {
+        if (request.readyState === 4 && request.timeout !== 1) {
+          var result = request.responseText;
+          var error = null;
+  
+          try {
+            result = JSON.parse(result);
+          } catch (e) {
+            error = errors.InvalidResponse(request.responseText);
+          }
+  
+          _this.connected = true;
+          callback(error, result);
+          resolve(null);
         }
-
-        _this.connected = true;
-        callback(error, result);
+      };
+  
+      request.ontimeout = function () {
+        _this.connected = false;
+        callback(errors.ConnectionTimeout(this.timeout));
+        resolve(null);
+      };
+  
+      try {
+        request.send(JSON.stringify(payload));
+      } catch (error) {
+        this.connected = false;
+        callback(errors.InvalidConnection(this.host));
       }
-    };
-
-    request.ontimeout = function () {
-      _this.connected = false;
-      callback(errors.ConnectionTimeout(this.timeout));
-    };
-
-    try {
-      request.send(JSON.stringify(payload));
-    } catch (error) {
-      this.connected = false;
-      callback(errors.InvalidConnection(this.host));
-    }
+    });
   }
 
   /**

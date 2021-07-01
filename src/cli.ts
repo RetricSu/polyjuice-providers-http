@@ -50,7 +50,7 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
       error: Error | null,
       result: JsonRpcResponse | undefined
     ) => void
-  ) {
+  ): Promise<void> {
     const { method, params } = payload;
 
     switch (method) {
@@ -103,13 +103,17 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
           );
 
           await this.godwoker.waitForTransactionReceipt(tx_hash);
-          this._send(payload, function (err, result) {
-            const res = {
-              jsonrpc: result.jsonrpc,
-              id: result.id,
-            };
-            const new_res = { ...res, ...{ result: tx_hash } };
-            callback(null, new_res);
+
+          await new Promise(async (resolve) => {
+            await this._send(payload, function (err, result) {
+              const res = {
+                jsonrpc: result.jsonrpc,
+                id: result.id,
+              };
+              const new_res = { ...res, ...{ result: tx_hash } };
+              callback(null, new_res);
+              resolve(undefined);
+            });
           });
           break;
         } catch (error) {
