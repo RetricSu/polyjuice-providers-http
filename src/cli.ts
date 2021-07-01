@@ -50,7 +50,7 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
       error: Error | null,
       result: JsonRpcResponse | undefined
     ) => void
-  ): Promise<void> {
+  ) {
     const { method, params } = payload;
 
     switch (method) {
