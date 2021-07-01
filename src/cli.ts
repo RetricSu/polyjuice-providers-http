@@ -104,16 +104,13 @@ export default class PolyjuiceHttpProviderForNode extends PolyjuiceHttpProvider 
 
           await this.godwoker.waitForTransactionReceipt(tx_hash);
 
-          await new Promise(async (resolve) => {
-            await this._send(payload, function (err, result) {
-              const res = {
-                jsonrpc: result.jsonrpc,
-                id: result.id,
-              };
-              const new_res = { ...res, ...{ result: tx_hash } };
-              callback(null, new_res);
-              resolve(undefined);
-            });
+          this._send(payload, function (err, result) {
+            const res = {
+              jsonrpc: result.jsonrpc,
+              id: result.id,
+            };
+            const new_res = { ...res, ...{ result: tx_hash } };
+            callback(null, new_res);
           });
           break;
         } catch (error) {
