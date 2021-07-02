@@ -1,5 +1,7 @@
 # Polyjuice Provider
 
+`note: in this branch, the ethers lib is based on ethers 5.2.0 version, while the main branch is based on 5.4.0.`
+
 a godwoken-polyjuice compatible library for ethereum utilities in JavaScript like `ethers` and `web3js`.
 
 now you can call your smart-contract on godwoken-polyjuice with metamask and eth address.
