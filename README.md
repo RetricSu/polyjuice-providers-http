@@ -1,5 +1,11 @@
 # Polyjuice Provider
 
+===========
+
+`NOTE: this project is transfer to nervosnetwork/polyjuice-provider`, please check [here](https://github.com/nervosnetwork/polyjuice-provider)
+
+===========
+
 a godwoken-polyjuice compatible library for ethereum utilities in JavaScript like `ethers` and `web3js`.
 
 now you can call your smart-contract on godwoken-polyjuice with metamask and eth address.
